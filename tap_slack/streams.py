@@ -4,10 +4,10 @@ import pendulum
 import time
 
 from datetime import datetime, timezone, timedelta
-from typing import Any, Dict, Optional, Iterable, cast
+from typing import Optional, cast, Any, Dict
 from singer_sdk.helpers.jsonpath import extract_jsonpath
 
-from tap_slack.client import SlackStream
+from tap_slack.client import SlackStream, ThrottledPageNumberPaginator
 from tap_slack import schemas
 
 
@@ -124,7 +124,7 @@ class MessagesStream(SlackStream):
         return row
 
     def get_starting_replication_key_value(
-        self, context: Optional[dict]
+            self, context: Optional[dict]
     ) -> Optional[int]:
         """
         Threads can continue to have messages for weeks after the original message
@@ -179,3 +179,17 @@ class UsersStream(SlackStream):
     replication_key = None
     records_jsonpath = "members.[*]"
     schema = schemas.users
+
+
+class IntegrationLogsStream(SlackStream):
+    name = "integration_logs"
+    path = "/team.integrationLogs"
+    primary_keys = ["user_id"]
+    replication_key = None
+    records_jsonpath = "logs.[*]"
+    schema = schemas.integration_logs
+    _page_size = 500
+
+    def get_new_paginator(self):
+        return ThrottledPageNumberPaginator(1)
+

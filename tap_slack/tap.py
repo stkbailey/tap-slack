@@ -11,6 +11,7 @@ from tap_slack.streams import (
     MessagesStream,
     ThreadsStream,
     UsersStream,
+    IntegrationLogsStream
 )
 
 STREAM_TYPES = [
@@ -19,6 +20,7 @@ STREAM_TYPES = [
     MessagesStream,
     ThreadsStream,
     UsersStream,
+    IntegrationLogsStream
 ]
 ADMIN_STREAM_TYPES = []
 

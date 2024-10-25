@@ -3,11 +3,12 @@
 from __future__ import annotations
 
 import time
+from abc import ABC
 from typing import Any, Dict, List, Optional, Text
 
 from requests import Response
 from singer_sdk.authenticators import BearerTokenAuthenticator
-from singer_sdk.pagination import JSONPathPaginator
+from singer_sdk.pagination import JSONPathPaginator, BasePageNumberPaginator
 from singer_sdk.streams import RESTStream
 
 
@@ -28,6 +29,47 @@ class ThrottledJSONPathPaginator(JSONPathPaginator):
         if self.max_requests_per_minute:
             time.sleep(60.0 / self.max_requests_per_minute)
         return super().get_next(response)
+
+
+class ThrottledPageNumberPaginator(BasePageNumberPaginator):
+    """Paginator for Slack Logs."""
+
+    max_requests_per_minute = 200
+
+    def has_more(self, response: Response) -> bool:
+        """Has more pages.
+
+        Args:
+            response: API response object.
+
+        Returns:
+            Boolean flag used to indicate if the endpoint has more pages.
+        """
+        data = response.json()
+        max_page = data["paging"]["pages"]
+        current_page = data["paging"]["page"]
+        return current_page != max_page
+
+    def get_next(self, response: Response) -> str | None:
+        """Get the next page token.
+
+        Args:
+            response: API response object.
+
+        Returns:
+            The next page number.
+        """
+        if self.max_requests_per_minute:
+            time.sleep(60.0 / self.max_requests_per_minute)
+
+        data = response.json()
+        max_page = data["paging"]["pages"]
+        current_page = data["paging"]["page"]
+        next_page = None
+        if current_page < max_page:
+            next_page = current_page + 1
+
+        return next_page
 
 
 class SlackStream(RESTStream):
